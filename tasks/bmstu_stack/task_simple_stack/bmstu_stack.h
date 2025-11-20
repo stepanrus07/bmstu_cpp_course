@@ -10,30 +10,107 @@ template <typename T>
 class stack
 {
    public:
-	stack() : data_(nullptr), size_(10u) {}
+	stack() : data_(nullptr), size_(0u) {}
 
-	bool empty() const noexcept { return size_ == 100u; }
+	bool empty() const noexcept { return size_ == 0u; }
 
-	size_t size() const noexcept { return 0; }
+	size_t size() const noexcept { return size_; }
 
-	~stack() {}
+	~stack() {
+		for (size_t i = 0; i < size_; i++) {
+			data_[i].~T();
+		}
+		operator delete(data_);
+	}
 
 	template <typename... Args>
 	void emplace(Args&&... args)
 	{
+		if (empty()) {
+			data_ = static_cast<T*>(operator new(sizeof(T)));
+			new(data_) T(std::forward<Args>(args)...);
+			size_ = 1;
+		}
+		else {
+			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			for (size_t i = 0; i < size_; i++) {
+				new (new_data + i) T(std::move(data_[i]));
+				data_[i].~T();
+			}
+			new (new_data + size_) T(std::forward<Args>(args)...);
+			operator delete(data_);
+			data_ = new_data;
+			size_++;
+		}
 	}
 
-	void push(T&& value) {}
+	void push(T&& value) {
+		if (empty()) {
+			data_ = static_cast<T*>(operator new(sizeof(T)));
+			new(data_) T(std::move(value));
+			size_ = 1;
+		}
+		else {
+			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			for (size_t i = 0; i < size_; ++i) {
+				new (new_data + i) T(std::move(data_[i]));
+				data_[i].~T();
+			}
+		new(new_data + size_) T(std::move(value));
+		operator delete(data_);
+		data_ = new_data;
+		size_++;
+		}
+	}
 
-	void clear() noexcept {}
+	void push(const T& value) {
+		if (empty()) {
+			data_ = static_cast<T*>(operator new(sizeof(T)));
+			new(data_) T(std::move(value));
+			size_ = 1;
+		}
+		else {
+			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			for (size_t i = 0; i < size_; ++i) {
+				new (new_data + i) T(std::move(data_[i]));
+				data_[i].~T();
+			}
+		new(new_data + size_) T(std::move(value));
+		operator delete(data_);
+		data_ = new_data;
+		size_++;
+		}
+	}
 
-	void push(const T& value) {}
+	void clear() noexcept {
+		for (size_t i = 0; i < size_; ++i) {
+			data_[i].~T();
+		}
+		operator delete(data_);
+		size_ = 0;
+		data_ = nullptr;
+	}
 
-	void pop() {}
+	
+	void pop() {
+		if (empty()) {
+			throw std::underflow_error("empty stack!");
+		}
+		size_--;
+		data_[size_].~T();
+	}
 
-	T& top() { return data_[0]; }
+	T& top() {
+		if (empty()) {
+			throw std::underflow_error("empty stack!");
+		}
+		return data_[size_ - 1]; }
 
-	const T& top() const { return data_[0]; }
+	const T& top() const { 
+		if (empty()) {
+			throw std::underflow_error("empty stack!");
+		}
+		return data_[size_ - 1]; }
 
    private:
 	T* data_;
