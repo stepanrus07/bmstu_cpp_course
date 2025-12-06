@@ -325,3 +325,11 @@ TEST(StackTest, CheckBraceSequence)
 	ASSERT_FALSE(checkBraceSequence("())"));
 	ASSERT_FALSE(checkBraceSequence(")("));
 }
+
+TEST(StackTest, CheckBraceSequence2)
+{
+	int a = 0x00616263;
+	int * b = &a;
+	char * c = (char* )((void*) b);
+	std::cout << c << '\n';
+}

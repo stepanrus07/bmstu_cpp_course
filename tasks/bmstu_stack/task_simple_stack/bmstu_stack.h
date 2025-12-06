@@ -17,22 +17,19 @@ class stack
 	size_t size() const noexcept { return size_; }
 
 	~stack() {
-		for (size_t i = 0; i < size_; i++) {
-			data_[i].~T();
-		}
-		operator delete(data_);
+		clear();
 	}
 
 	template <typename... Args>
 	void emplace(Args&&... args)
 	{
 		if (empty()) {
-			data_ = static_cast<T*>(operator new(sizeof(T)));
+			data_ = (T*)(operator new(sizeof(T)));
 			new(data_) T(std::forward<Args>(args)...);
 			size_ = 1;
 		}
 		else {
-			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			T* new_data = (T*)(operator new(sizeof(T)*(size_+1)));
 			for (size_t i = 0; i < size_; i++) {
 				new (new_data + i) T(std::move(data_[i]));
 				data_[i].~T();
@@ -46,12 +43,12 @@ class stack
 
 	void push(T&& value) {
 		if (empty()) {
-			data_ = static_cast<T*>(operator new(sizeof(T)));
+			data_ = (T*)(operator new(sizeof(T)));
 			new(data_) T(std::move(value));
 			size_ = 1;
 		}
 		else {
-			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			T* new_data = (T*)(operator new(sizeof(T)*(size_+1)));
 			for (size_t i = 0; i < size_; ++i) {
 				new (new_data + i) T(std::move(data_[i]));
 				data_[i].~T();
@@ -65,12 +62,12 @@ class stack
 
 	void push(const T& value) {
 		if (empty()) {
-			data_ = static_cast<T*>(operator new(sizeof(T)));
+			data_ = (T*)(operator new(sizeof(T)));
 			new(data_) T(std::move(value));
 			size_ = 1;
 		}
 		else {
-			T* new_data = static_cast<T*>(operator new(sizeof(T)*(size_+1)));
+			T* new_data = (T*)(operator new(sizeof(T)*(size_+1)));
 			for (size_t i = 0; i < size_; ++i) {
 				new (new_data + i) T(std::move(data_[i]));
 				data_[i].~T();
