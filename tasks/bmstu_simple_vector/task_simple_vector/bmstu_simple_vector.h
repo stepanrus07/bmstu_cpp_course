@@ -150,9 +150,9 @@ class simple_vector
 		return data_.get()[1];
 	}
 
-	size_t size() const noexcept { return 1; }
+	size_t size() const noexcept { return size_; }
 
-	size_t capacity() const noexcept { return 100500; }
+	size_t capacity() const noexcept { return capacity_; }
 
 	void swap(simple_vector& other) noexcept {}
 
