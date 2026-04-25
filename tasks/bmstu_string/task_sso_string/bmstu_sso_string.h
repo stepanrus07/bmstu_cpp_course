@@ -533,6 +533,27 @@ class basic_string
 		return data_.short_str.buffer;
 	}
 
+	basic_string<T>* split() {
+		if (get_size() == 0) {return nullptr;}
+		basic_string<T>* str = new basic_string<T>[get_size()];
+		int j = 0;
+		bool is_split = (get_ptr()[0] == L' ' || get_ptr()[0] == L',');
+		for (size_t i = 0; i < get_size(); i++) {
+			T symbol = get_ptr()[i];
+			if (symbol != L' ' && symbol != L',') {
+				str[j] += symbol;
+				is_split = false;
+			}
+			else {
+				if (!is_split) {
+					j += 1;
+					is_split = true;
+				}
+			}
+		}
+		return str;
+	}
+
    private:
 	static size_t strlen_(const T* str)
 	{

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <sstream>
+#include <fstream>
 #include "bmstu_sso_string.h"
 
 TEST(SSOStringTest, DefaultConstructor)
@@ -375,4 +376,54 @@ TEST(SSOStringTest, SSOCapacity)
 	bmstu::string long_str("This is a very long string");
 	ASSERT_FALSE(long_str.is_using_sso());
 	ASSERT_GE(long_str.capacity(), long_str.size());
+}
+
+TEST(SSOStringTest, DummySplit)
+{
+	bmstu::wstring short_str(L"Blaaaa blaaa        blaa blaa, puk, среньк");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_STREQ(strings[0].c_str(), L"Blaaaa");
+	ASSERT_STREQ(strings[1].c_str(), L"blaaa");
+	ASSERT_STREQ(strings[2].c_str(), L"blaa");
+	ASSERT_STREQ(strings[3].c_str(), L"blaa");
+	ASSERT_STREQ(strings[4].c_str(), L"puk");
+	ASSERT_STREQ(strings[5].c_str(), L"среньк");
+}
+
+TEST(SSOStringTest, DummySplit2)
+{
+	bmstu::wstring short_str(L"         Пук");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_STREQ(strings[0].c_str(), L"Пук");
+}
+
+TEST(SSOStringTest, DummySplit3)
+{
+	bmstu::wstring short_str(L"                                 Пук                 ");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_STREQ(strings[0].c_str(), L"Пук");
+}
+
+TEST(SSOStringTest, DummySplit4)
+{
+	bmstu::wstring short_str(L"1,2,3,4");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_STREQ(strings[0].c_str(), L"1");
+	ASSERT_STREQ(strings[3].c_str(), L"4");
+}
+
+TEST(SSOStringTest, DummySplit5)
+{
+	bmstu::wstring short_str(L"");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_EQ(strings, nullptr);
+}
+
+
+TEST(SSOStringTest, DummySplit6)
+{
+	bmstu::wstring short_str(L",,,,A");
+	bmstu::wstring* strings = short_str.split();
+	ASSERT_STREQ(strings[0].c_str(), L"A");
+	ASSERT_STREQ(strings[1].c_str(), L"");
 }
