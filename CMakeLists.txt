@@ -12,8 +12,8 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-file(WRITE ${CMAKE_SOURCE_DIR}/.gdbinit "source gdb_printer.py\n")
-file(WRITE ${CMAKE_SOURCE_DIR}/.lldbinit "command script import lldb_printer.py\n")
+#file(WRITE ${CMAKE_SOURCE_DIR}/.gdbinit "source gdb_printer.py\n")
+#file(WRITE ${CMAKE_SOURCE_DIR}/.lldbinit "command script import lldb_printer.py\n")
 
 if(UNIX)
     set(HOME_DIR "$ENV{HOME}")

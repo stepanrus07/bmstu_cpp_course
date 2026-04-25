@@ -153,9 +153,9 @@ class basic_string
 		for (size_t i = 0; i < size_; i++) {
 			new_ptr[i] = ptr_[i];
 		}
-		delete[]ptr_;
+		delete[] ptr_;
 		for (size_t i = 0; i < other.size_; i++) {
-			new_ptr[size_ + i] = other.ptr[i];
+			new_ptr[size_ + i] = other.ptr_[i];
 		}
 		ptr_ = new_ptr;
 		size_ = new_size;
