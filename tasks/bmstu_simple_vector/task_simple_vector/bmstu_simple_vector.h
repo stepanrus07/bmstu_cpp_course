@@ -111,7 +111,7 @@ class simple_vector
 
 	simple_vector() noexcept = default;
 
-	~simple_vector() = default;
+	~simple_vector() { clear(); };
 
 	simple_vector(std::initializer_list<T> init) noexcept {}
 
@@ -168,7 +168,15 @@ class simple_vector
 
 	void push_back(T&& value) {}
 
-	void clear() noexcept {}
+	void clear() noexcept {
+		for (size_t i = 0; i < size_; i++) {
+			data_[i].~T();
+		}
+		~data_();
+		data_ = nullptr;
+		size_ = 0;
+		capacity_ = 0;
+	}
 
 	void push_back(const T& value) {}
 
