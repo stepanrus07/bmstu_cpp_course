@@ -168,11 +168,7 @@ class simple_vector
 		}
 	}
 
-	simple_vector(simple_vector&& other) noexcept
-	{
-		swap(other);
-		
-	}
+	simple_vector(simple_vector&& other) noexcept { swap(other); }
 
 	simple_vector& operator=(const simple_vector& other)
 	{
@@ -327,7 +323,8 @@ class simple_vector
 		return iterator(data_.get() + index);
 	}
 
-	iterator insert(const_iterator where, const T& value) { 
+	iterator insert(const_iterator where, const T& value)
+	{
 		size_t index = where - begin();
 		reserve(std::max(index + 1, size_ + 1));
 		if (index >= size_)
@@ -350,7 +347,7 @@ class simple_vector
 			size_++;
 		}
 		return iterator(data_.get() + index);
-	 }
+	}
 
 	iterator erase(iterator where)
 	{
@@ -378,18 +375,20 @@ class simple_vector
 			{
 				array_ptr<T> new_data(1);
 				data_ = std::move(new_data);
-				size_ = 1;
+				size_ = 0;
 				capacity_ = 1;
-				return;
 			}
-			array_ptr<T> new_data(capacity_ * 2);
-			for (size_t i = 0; i < size_; i++)
+			else
 			{
-				new (&new_data[i]) T(data_[i]);
-				data_[i].~T();
+				array_ptr<T> new_data(capacity_ * 2);
+				for (size_t i = 0; i < size_; i++)
+				{
+					new (&new_data[i]) T(data_[i]);
+					data_[i].~T();
+				}
+				data_ = std::move(new_data);
+				capacity_ *= 2;
 			}
-			data_ = std::move(new_data);
-			capacity_ *= 2;
 		}
 		new (&data_[size_]) T(std::move(value));
 		size_++;
@@ -403,18 +402,19 @@ class simple_vector
 			{
 				array_ptr<T> new_data(1);
 				data_ = std::move(new_data);
-				size_ = 1;
 				capacity_ = 1;
-				return;
 			}
-			array_ptr<T> new_data(capacity_ * 2);
-			for (size_t i = 0; i < size_; i++)
+			else
 			{
-				new (&new_data[i]) T(data_[i]);
-				data_[i].~T();
+				array_ptr<T> new_data(capacity_ * 2);
+				for (size_t i = 0; i < size_; i++)
+				{
+					new (&new_data[i]) T(data_[i]);
+					data_[i].~T();
+				}
+				data_ = std::move(new_data);
+				capacity_ *= 2;
 			}
-			data_ = std::move(new_data);
-			capacity_ *= 2;
 		}
 		new (&data_[size_]) T(value);
 		size_++;
