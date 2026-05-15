@@ -34,7 +34,7 @@ class array_ptr
 		if (size > 0)
 		{
 			raw_ptr_ = static_cast<T*>(operator new(sizeof(T) * size));
-			my_fill(raw_ptr_, size);
+			//my_fill(raw_ptr_, size);
 		}
 		else
 		{
@@ -70,7 +70,9 @@ class array_ptr
 
 	~array_ptr() { operator delete(raw_ptr_); }
 
-	void swap(array_ptr& other) noexcept { my_swap(raw_ptr_, other.raw_ptr_); }
+	void swap(array_ptr& other) noexcept { 
+		my_swap(raw_ptr_, other.raw_ptr_);
+	}
 
 	const T& operator[](size_t index) const
 	{
