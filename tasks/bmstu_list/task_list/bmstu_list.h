@@ -13,8 +13,10 @@ class list
 		node() = default;
 
 		node(node* prev, const T& value, node* next)
-			: next_node_(nullptr), prev_node_(nullptr)
+			: value_(value), prev_node_(prev), next_node_(next)
 		{
+			prev->next_node_ = this;
+			next->prev_node_ = this;
 		}
 
 		T value_;
@@ -29,16 +31,37 @@ class list
 		node* current;
 		iterator() : current(nullptr) {}
 		iterator(node* node) : current(node) {}
-		iterator& operator++() override { return *this; }
-		iterator& operator--() override { return *this; }
-		iterator operator++(int) override { return nullptr; }
-		iterator operator--(int) override { return nullptr; }
+		iterator& operator++() override
+		{
+			current = current->next_node_;
+			return *this;
+		}
+		iterator& operator--() override
+		{
+			current = current->prev_node_;
+			return *this;
+		}
+		iterator operator++(int) override
+		{
+			node* tmp = current;
+			++current;
+			return iterator(tmp);
+		}
+		iterator operator--(int) override
+		{
+			node* tmp = current;
+			--current;
+			return iterator(tmp);
+		}
 		iterator& operator+=(
 			const typename abstract_iterator<
 				iterator,
 				T,
 				std::bidirectional_iterator_tag>::difference_type& n) override
 		{
+			for (int i = 0; i < n; i++) {
+				current++;
+			}
 			return *this;
 		}
 		iterator& operator-=(
@@ -47,6 +70,9 @@ class list
 				T,
 				std::bidirectional_iterator_tag>::difference_type& n) override
 		{
+			for (int i = 0; i < n; i++) {
+				current--;
+			}
 			return *this;
 		}
 		iterator operator+(const typename abstract_iterator<
@@ -55,7 +81,11 @@ class list
 						   std::bidirectional_iterator_tag>::difference_type& n)
 			const override
 		{
-			return nullptr;
+			iterator tmp = iterator(current);
+			for (int i = 0; i < n; i++) {
+				tmp++;
+			}
+			return tmp;
 		}
 		iterator operator-(const typename abstract_iterator<
 						   iterator,
@@ -63,7 +93,11 @@ class list
 						   std::bidirectional_iterator_tag>::difference_type& n)
 			const override
 		{
-			return nullptr;
+			iterator tmp = iterator(current);
+			for (int i = 0; i < n; i++) {
+				tmp--;
+			}
+			return tmp;
 		}
 		typename abstract_iterator<iterator,
 								   T,
@@ -94,12 +128,25 @@ class list
 			std::bidirectional_iterator_tag>::difference_type
 		operator-(const iterator& other) const override
 		{
-			return 0;
+			int counter = 0;
+			iterator tmp(current);
+			while (tmp != other)
+			{
+				counter++;
+				tmp--;
+			}
+			return counter;
 		}
 	};
 	using const_iterator = iterator;
 
-	list() {}
+	list()
+	{
+		tail_ = new node();
+		head_ = new node();
+		tail_->prev_node_ = head_;
+		head_->next_node_ = tail_;
+	}
 
 	template <typename it>
 	list(it begin, it end)
@@ -110,7 +157,15 @@ class list
 
 	list(const list& other) {}
 
-	list(list&& other) {}
+	list(list&& other)
+	{
+		size_ = other.size_;
+		tail_ = other.tail_;
+		head_ = other.head_;
+		other.size_ = 0;
+		other.tail_ = nullptr;
+		other.head_ = nullptr;
+	}
 
 #pragma endregion
 #pragma region pushs
