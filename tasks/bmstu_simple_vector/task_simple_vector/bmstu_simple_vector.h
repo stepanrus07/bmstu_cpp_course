@@ -396,28 +396,8 @@ class simple_vector
 
 	void push_back(const T& value)
 	{
-		if (size_ + 1 > capacity_)
-		{
-			if (size_ == 0)
-			{
-				array_ptr<T> new_data(1);
-				data_ = std::move(new_data);
-				capacity_ = 1;
-			}
-			else
-			{
-				array_ptr<T> new_data(capacity_ * 2);
-				for (size_t i = 0; i < size_; i++)
-				{
-					new (&new_data[i]) T(data_[i]);
-					data_[i].~T();
-				}
-				data_ = std::move(new_data);
-				capacity_ *= 2;
-			}
-		}
-		new (&data_[size_]) T(value);
-		size_++;
+		T copy(value);
+		push_back(std::move(copy));
 	}
 
 	void clear() noexcept
