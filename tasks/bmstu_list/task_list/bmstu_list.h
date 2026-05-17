@@ -15,8 +15,6 @@ class list
 		node(node* prev, const T& value, node* next)
 			: value_(value), prev_node_(prev), next_node_(next)
 		{
-			prev->next_node_ = this;
-			next->prev_node_ = this;
 		}
 
 		T value_;
@@ -59,7 +57,8 @@ class list
 				T,
 				std::bidirectional_iterator_tag>::difference_type& n) override
 		{
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < n; i++)
+			{
 				current++;
 			}
 			return *this;
@@ -70,7 +69,8 @@ class list
 				T,
 				std::bidirectional_iterator_tag>::difference_type& n) override
 		{
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < n; i++)
+			{
 				current--;
 			}
 			return *this;
@@ -82,7 +82,8 @@ class list
 			const override
 		{
 			iterator tmp = iterator(current);
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < n; i++)
+			{
 				tmp++;
 			}
 			return tmp;
@@ -94,7 +95,8 @@ class list
 			const override
 		{
 			iterator tmp = iterator(current);
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < n; i++)
+			{
 				tmp--;
 			}
 			return tmp;
@@ -144,6 +146,7 @@ class list
 	{
 		tail_ = new node();
 		head_ = new node();
+		size_ = 0;
 		tail_->prev_node_ = head_;
 		head_->next_node_ = tail_;
 	}
@@ -151,18 +154,57 @@ class list
 	template <typename it>
 	list(it begin, it end)
 	{
+		head_ = new node();
+		tail_ = new node();
+		size_ = 0;
+		node* prev = head_;
+		for (it i = begin; i != end; i++)
+		{
+			node* new_node = new node(prev, *i, nullptr);
+			prev = new_node;
+			size_++;
+		}
+		prev->next_node_ = tail_;
+		tail_->prev_node_ = prev;
 	}
 
-	list(std::initializer_list<T> values) {}
+	list(std::initializer_list<T> values)
+	{
+		head_ = new node();
+		tail_ = new node();
+		size_ = values.size();
+		node* prev = head_;
+		for (size_t i = 0; i < size_; i++)
+		{
+			node* new_node = new node(prev, T(values.begin()[i]), nullptr);
+			prev = new_node;
+		}
+		prev->next_node_ = tail_;
+		tail_->prev_node_ = prev;
+	}
 
-	list(const list& other) {}
+	list(const list& other)
+	{
+		size_ = other.size_;
+		head_ = new node();
+		tail_ = new node();
+		node* prev = head_;
+		iterator iterator(other.head_->next_node_);
+		for (size_t i = 0; i < size_; i++)
+		{
+			node* new_node = new node(prev, *(iterator + i), nullptr);
+			prev = new_node;
+		}
+		prev->next_node_ = tail_;
+		tail_->prev_node_ = prev;
+	}
 
 	list(list&& other)
 	{
 		size_ = other.size_;
+		other.size_ = 0;
 		tail_ = other.tail_;
 		head_ = other.head_;
-		other.size_ = 0;
 		other.tail_ = nullptr;
 		other.head_ = nullptr;
 	}
@@ -174,7 +216,7 @@ class list
 	void push_back(const Type& value)
 	{
 		node* last = tail_->prev_node_;
-		node* new_last = new node(tail_->prev_node_, value, tail_);
+		node* new_last = new node(last, value, tail_);
 		tail_->prev_node_ = new_last;
 		last->next_node_ = new_last;
 		++size_;
@@ -183,7 +225,6 @@ class list
 	template <typename Type>
 	void push_front(const Type& value)
 	{
-		// адрес реального последнего элемента
 		node* first = head_->next_node_;
 		node* new_first = new node(head_, value, first);
 		head_->next_node_ = new_first;
@@ -193,78 +234,91 @@ class list
 
 #pragma endregion
 
-	bool empty() const
+	bool empty() const noexcept { return (size_ == 0u); }
 
-		noexcept
+	~list()
 	{
-		return (size_ == 0u);
+		clear();
+		delete head_;
+		delete tail_;
 	}
 
-	~list() {}
-
-	void clear() {}
-
-	size_t size() const { return 0; }
-
-	void swap(list& other)
-
-		noexcept
+	void clear()
 	{
+		node* curr = head_;
+		for (size_t i = 0; i < size_; i++)
+		{
+			curr = curr->next_node_;
+			delete curr->prev_node_;
+		}
+		size_ = 0;
+		tail_->prev_node_ = head_;
+		head_->next_node_ = tail_;
+	}
+
+	size_t size() const { return size_; }
+
+	void swap(list& other) noexcept
+	{
+		std::swap(size_, other.size_);
+		std::swap(head_, other.head_);
+		std::swap(tail_, other.tail_);
 	}
 
 	friend void swap(list& l, list& r) { l.swap(r); }
 
 #pragma region iterators
 
-	iterator begin()
+	iterator begin() noexcept { return iterator(head_->next_node_); }
 
-		noexcept
+	iterator end() noexcept { return iterator(tail_); }
+
+	const_iterator begin() const noexcept
 	{
-		return iterator{head_->next_node_};
+		return const_iterator(head_->next_node_);
 	}
 
-	iterator end()
+	const_iterator end() const noexcept { return const_iterator(tail_); }
 
-		noexcept
+	const_iterator cbegin() const noexcept
 	{
-		return iterator{tail_};
+		return const_iterator(head_->next_node_);
 	}
 
-	const_iterator begin() const
-
-		noexcept
-	{
-		return const_iterator{head_->next_node_};
-	}
-
-	const_iterator end() const
-
-		noexcept
-	{
-		return const_iterator{tail_};
-	}
-
-	const_iterator cbegin() const
-
-		noexcept
-	{
-		return const_iterator{head_->next_node_};
-	}
-
-	const_iterator cend() const
-
-		noexcept
-	{
-		return const_iterator{tail_};
-	}
+	const_iterator cend() const noexcept { return const_iterator(tail_); }
 
 #pragma endregion
 
-	T operator[](size_t pos) const {}
+	T operator[](size_t pos) const
+	{
+		if (pos < 0 || pos >= size_)
+		{
+			throw std::out_of_range("Index out of range");
+		}
+		return *(begin() + pos);
+	}
 
-	T& operator[](size_t pos) { return *(static_cast<T*>((void*)&pos)); }
+	T& operator[](size_t pos)
+	{
+		if (pos < 0 || pos >= size_)
+		{
+			throw std::out_of_range("Index out of range");
+		}
+		return *(begin() + pos);
+	}
 
-	friend bool operator==(const list& l, const list& r) { return true; }
+	friend bool operator==(const list& l, const list& r) { 
+		if (l.size() != r.size()) {
+			return false;
+		}
+		iterator it_l = l.begin();
+		iterator it_r = r.begin();
+		for (size_t i = 0; i < r.size(); i++) {
+			if (*(it_l) != *(it_r)) {return false;}
+			it_l++;
+			it_r++;
+		}
+		return true; }
 
 	friend bool operator!=(const list& l, const list& r) { return false; }
 
@@ -277,7 +331,7 @@ class list
 
 	iterator insert(const_iterator pos, const T& value)
 	{
-		return iterator{nullptr};
+		return iterator(nullptr);
 	}
 
    private:
