@@ -42,13 +42,13 @@ class list
 		iterator operator++(int) override
 		{
 			node* tmp = current;
-			++current;
+			current = current->next_node_;
 			return iterator(tmp);
 		}
 		iterator operator--(int) override
 		{
 			node* tmp = current;
-			--current;
+			current = current->prev_node_;
 			return iterator(tmp);
 		}
 		iterator& operator+=(
@@ -59,7 +59,7 @@ class list
 		{
 			for (int i = 0; i < n; i++)
 			{
-				current++;
+				current = current->next_node_;
 			}
 			return *this;
 		}
@@ -71,7 +71,7 @@ class list
 		{
 			for (int i = 0; i < n; i++)
 			{
-				current--;
+				current = current->prev_node_;
 			}
 			return *this;
 		}
@@ -81,10 +81,10 @@ class list
 						   std::bidirectional_iterator_tag>::difference_type& n)
 			const override
 		{
-			iterator tmp = iterator(current);
+			iterator tmp(current);
 			for (int i = 0; i < n; i++)
 			{
-				tmp++;
+				++tmp;
 			}
 			return tmp;
 		}
@@ -94,10 +94,10 @@ class list
 						   std::bidirectional_iterator_tag>::difference_type& n)
 			const override
 		{
-			iterator tmp = iterator(current);
+			iterator tmp(current);
 			for (int i = 0; i < n; i++)
 			{
-				tmp--;
+				--tmp;
 			}
 			return tmp;
 		}
@@ -135,7 +135,7 @@ class list
 			while (tmp != other)
 			{
 				counter++;
-				tmp--;
+				--tmp;
 			}
 			return counter;
 		}
@@ -157,15 +157,16 @@ class list
 		head_ = new node();
 		tail_ = new node();
 		size_ = 0;
-		node* prev = head_;
+		node* curr = head_;
 		for (it i = begin; i != end; i++)
 		{
-			node* new_node = new node(prev, *i, nullptr);
-			prev = new_node;
+			node* new_node = new node(curr, *i, nullptr);
+			curr->next_node_ = new_node;
+			curr = new_node;
 			size_++;
 		}
-		prev->next_node_ = tail_;
-		tail_->prev_node_ = prev;
+		curr->next_node_ = tail_;
+		tail_->prev_node_ = curr;
 	}
 
 	list(std::initializer_list<T> values)
@@ -173,14 +174,17 @@ class list
 		head_ = new node();
 		tail_ = new node();
 		size_ = values.size();
-		node* prev = head_;
-		for (size_t i = 0; i < size_; i++)
+		head_->next_node_ = tail_;
+		tail_->prev_node_ = head_;
+		node* curr = head_;
+		for (const T& el : values)
 		{
-			node* new_node = new node(prev, T(values.begin()[i]), nullptr);
-			prev = new_node;
+			node* new_node = new node(curr, el, nullptr);
+			curr->next_node_ = new_node;
+			curr = new_node;
 		}
-		prev->next_node_ = tail_;
-		tail_->prev_node_ = prev;
+		curr->next_node_ = tail_;
+		tail_->prev_node_ = curr;
 	}
 
 	list(const list& other)
@@ -188,15 +192,16 @@ class list
 		size_ = other.size_;
 		head_ = new node();
 		tail_ = new node();
-		node* prev = head_;
+		node* curr = head_;
 		iterator iterator(other.head_->next_node_);
 		for (size_t i = 0; i < size_; i++)
 		{
-			node* new_node = new node(prev, *(iterator + i), nullptr);
-			prev = new_node;
+			node* new_node = new node(curr, *(iterator++), nullptr);
+			curr->next_node_ = new_node;
+			curr = new_node;
 		}
-		prev->next_node_ = tail_;
-		tail_->prev_node_ = prev;
+		curr->next_node_ = tail_;
+		tail_->prev_node_ = curr;
 	}
 
 	list(list&& other)
@@ -245,7 +250,7 @@ class list
 
 	void clear()
 	{
-		node* curr = head_;
+		node* curr = head_->next_node_;
 		for (size_t i = 0; i < size_; i++)
 		{
 			curr = curr->next_node_;
@@ -307,37 +312,80 @@ class list
 		return *(begin() + pos);
 	}
 
-	friend bool operator==(const list& l, const list& r) { 
-		if (l.size() != r.size()) {
+	friend bool operator==(const list& l, const list& r)
+	{
+		if (l.size() != r.size())
+		{
 			return false;
 		}
 		iterator it_l = l.begin();
 		iterator it_r = r.begin();
-		for (size_t i = 0; i < r.size(); i++) {
-			if (*(it_l) != *(it_r)) {return false;}
+		for (size_t i = 0; i < r.size(); i++)
+		{
+			if (*(it_l) != *(it_r))
+			{
+				return false;
+			}
 			it_l++;
 			it_r++;
 		}
-		return true; }
+		return true;
+	}
 
-	friend bool operator!=(const list& l, const list& r) { return false; }
+	friend bool operator!=(const list& l, const list& r) { return !(l == r); }
 
-	friend auto operator<=>(const list& lhs, const list& rhs) { return true; }
+	friend auto operator<=>(const list& lhs, const list& rhs)
+	{
+		iterator it_l = lhs.begin();
+		iterator it_r = rhs.begin();
+		for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); i++)
+		{
+			if (*(it_l) != *(it_r))
+			{
+				return *(it_l) <=> *(it_r);
+			}
+			it_l++;
+			it_r++;
+		}
+		return lhs.size() <=> rhs.size();
+	}
 
 	friend std::ostream& operator<<(std::ostream& os, const list& other)
 	{
+		os << "{";
+		for (size_t i = 0; i < other.size() - 1; i++)
+		{
+			os << other[i];
+			os << ", ";
+		}
+		os << other[other.size() - 1];
+		os << "}";
 		return os;
 	}
 
 	iterator insert(const_iterator pos, const T& value)
 	{
-		return iterator(nullptr);
+		node* new_node = new node(pos->prev_node_, T(value), pos->next_node_);
+		pos->next_node_ = new_node;
+		pos->next_node_->prev_node_ = new_node;
+		return pos;
 	}
 
    private:
 	static bool lexicographical_compare_(const list<T>& l, const list<T>& r)
 	{
-		return "123";
+		iterator it_l = l.begin();
+		iterator it_r = r.begin();
+		for (size_t i = 0; i < std::min(l.size(), r.size()); i++)
+		{
+			if (*(it_l) != *(it_r))
+			{
+				return *(it_l) < *(it_r);
+			}
+			it_l++;
+			it_r++;
+		}
+		return l.size() < r.size();
 	}
 
 	size_t size_ = 0;
