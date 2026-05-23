@@ -124,6 +124,7 @@ class list
 			return current != other.current;
 		}
 		explicit operator bool() const override { return current != nullptr; }
+
 		typename abstract_iterator<
 			iterator,
 			T,
@@ -174,8 +175,6 @@ class list
 		head_ = new node();
 		tail_ = new node();
 		size_ = values.size();
-		head_->next_node_ = tail_;
-		tail_->prev_node_ = head_;
 		node* curr = head_;
 		for (const T& el : values)
 		{
@@ -193,10 +192,10 @@ class list
 		head_ = new node();
 		tail_ = new node();
 		node* curr = head_;
-		iterator iterator(other.head_->next_node_);
+		iterator iter(other.head_->next_node_);
 		for (size_t i = 0; i < size_; i++)
 		{
-			node* new_node = new node(curr, *(iterator++), nullptr);
+			node* new_node = new node(curr, *(iter++), nullptr);
 			curr->next_node_ = new_node;
 			curr = new_node;
 		}
@@ -206,12 +205,8 @@ class list
 
 	list(list&& other)
 	{
-		size_ = other.size_;
-		other.size_ = 0;
-		tail_ = other.tail_;
-		head_ = other.head_;
-		other.tail_ = nullptr;
-		other.head_ = nullptr;
+		clear();
+		swap(other);
 	}
 
 #pragma endregion
@@ -318,40 +313,38 @@ class list
 		{
 			return false;
 		}
-		iterator it_l = l.begin();
-		iterator it_r = r.begin();
-		for (size_t i = 0; i < r.size(); i++)
+		iterator it_l = l.begin(), it_r = r.begin();
+		for (it_l; it_l != l.end() && it_r != r.end(); it_l++, it_r++)
 		{
 			if (*(it_l) != *(it_r))
 			{
 				return false;
 			}
-			it_l++;
-			it_r++;
 		}
 		return true;
 	}
 
 	friend bool operator!=(const list& l, const list& r) { return !(l == r); }
 
-	friend auto operator<=>(const list& lhs, const list& rhs)
+	friend auto operator<=>(const list& l, const list& r)
 	{
-		iterator it_l = lhs.begin();
-		iterator it_r = rhs.begin();
-		for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); i++)
+		iterator it_l = l.begin(), it_r = r.begin();
+		for (it_l; it_l != l.end() && it_r != r.end(); it_l++, it_r++)
 		{
 			if (*(it_l) != *(it_r))
 			{
 				return *(it_l) <=> *(it_r);
 			}
-			it_l++;
-			it_r++;
 		}
-		return lhs.size() <=> rhs.size();
+		return l.size() <=> r.size();
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const list& other)
 	{
+		if (other.size() == 0)
+		{
+			return os << "{}";
+		}
 		os << "{";
 		for (size_t i = 0; i < other.size() - 1; i++)
 		{
@@ -365,25 +358,23 @@ class list
 
 	iterator insert(const_iterator pos, const T& value)
 	{
-		node* new_node = new node(pos->prev_node_, T(value), pos->next_node_);
-		pos->next_node_ = new_node;
-		pos->next_node_->prev_node_ = new_node;
+		node* new_node = new node(pos.current->prev_node_, value, pos.current);
+		pos.current->prev_node_->next_node_ = new_node;
+		pos.current->prev_node_ = new_node;
+		size_++;
 		return pos;
 	}
 
    private:
 	static bool lexicographical_compare_(const list<T>& l, const list<T>& r)
 	{
-		iterator it_l = l.begin();
-		iterator it_r = r.begin();
-		for (size_t i = 0; i < std::min(l.size(), r.size()); i++)
+		iterator it_l = l.begin(), it_r = r.begin();
+		for (it_l; it_l != l.end() && it_r != r.end(); it_l++, it_r++)
 		{
 			if (*(it_l) != *(it_r))
 			{
 				return *(it_l) < *(it_r);
 			}
-			it_l++;
-			it_r++;
 		}
 		return l.size() < r.size();
 	}

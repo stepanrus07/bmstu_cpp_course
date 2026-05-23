@@ -536,3 +536,18 @@ TEST(BidirectLinkedListTests, from_vector)
 										"string7"s, "end_string"s}),
 			  my_vec);
 }
+
+
+TEST(BidirectLinkedListTests, InsertTest)
+{
+	bmstu::list<int> list;
+	list.insert(list.begin(), 0);
+	ASSERT_EQ(0, list[0]); 
+	list.insert(list.end(), 5);
+	//std::cout<<"CHANGED LIST"<<list<<std::endl;
+	list.clear();
+	list.push_front(0);
+	list.push_back(2);
+	list.insert(list.begin()+1, 1);
+	ASSERT_EQ(1, list[1]); 
+}
