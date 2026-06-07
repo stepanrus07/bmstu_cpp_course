@@ -172,6 +172,7 @@ TEST(UnorderedMapTest, Clear)
 	for (int i = 0; i < 20; ++i)
 		m[i] = i;
 
+	EXPECT_EQ(m[1], 1);
 	m.clear();
 	EXPECT_TRUE(m.empty());
 	EXPECT_EQ(m.size(), 0u);

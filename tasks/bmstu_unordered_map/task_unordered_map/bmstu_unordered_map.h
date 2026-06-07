@@ -70,6 +70,7 @@ struct has_equality_operator_impl<
 
 }  // namespace detail
 
+#pragma region hash
 template <typename T>
 struct has_raw_bytes : detail::has_raw_bytes_impl<T>
 {
@@ -127,6 +128,7 @@ struct streebog_hash<std::string>
 		return result;
 	}
 };
+#pragma endregion
 
 template <typename K,
 		  typename V,
@@ -144,7 +146,7 @@ class unordered_map
 	using size_type = std::size_t;
 
    private:
-	static constexpr size_type DEFAULT_BUCKET_COUNT = 16;
+	static constexpr size_type DEFAULT_BUCKET_COUNT = 8;
 	static constexpr double MAX_LOAD_FACTOR = 0.75;
 
 	using bucket_type = std::list<value_type>;
@@ -154,9 +156,27 @@ class unordered_map
 	Hash hasher_;
 	Equal equal_;
 
-	size_type bucket_for(const K& key) const { return 0; }
+	size_type bucket_for(const K& key) const
+	{
+		return hasher_(key) % buckets_.size();
+	}
 
-	void rehash(size_type new_count) {}
+	void rehash(size_type new_count)
+	{
+		if (new_count > buckets_.size())
+		{
+			std::vector<bucket_type> new_buckets(new_count);
+			for (bucket_type bucket : buckets_)
+			{
+				for (value_type v : bucket)
+				{
+					size_t i = hasher_(v.first) % new_count;
+					new_buckets[i].push_back(v);
+				}
+			}
+			buckets_ = std::move(new_buckets);
+		}
+	}
 
    public:
 	struct iterator
@@ -183,11 +203,47 @@ class unordered_map
 		reference operator*() const { return *list_it_; }
 		pointer operator->() const { return &(*list_it_); }
 
-		iterator& operator++() { return *this; }
+		iterator& operator++()
+		{
+			if (bucket_idx_ >= buckets_->size())
+			{
+				return *this;
+			}
+			if (++list_it_ != (*buckets_)[bucket_idx_].end())
+			{
+				return *this;
+			}
+			while (bucket_idx_ < buckets_->size() &&
+				   list_it_ == (*buckets_)[bucket_idx_].end())
+			{
+				++bucket_idx_;
+				if (bucket_idx_ == buckets_->size())
+				{
+					list_it_ = {};
+					return *this;
+				}
+				list_it_ = (*buckets_)[bucket_idx_].begin();
+			}
+			return *this;
+		}
 
-		iterator operator++(int) { return *this; }
+		iterator operator++(int)
+		{
+			iterator tmp(*this);
+			++(*this);
+			return tmp;
+		}
 
-		bool operator==(const iterator& o) const { return false; }
+		bool operator==(const iterator& o) const
+		{
+			if (buckets_ != o.buckets_)
+				return false;
+			if (bucket_idx_ != o.bucket_idx_)
+				return false;
+			if (bucket_idx_ == buckets_->size())
+				return true;
+			return list_it_ == o.list_it_;
+		}
 
 		bool operator!=(const iterator& o) const { return !(*this == o); }
 	};
@@ -223,11 +279,47 @@ class unordered_map
 		reference operator*() const { return *list_it_; }
 		pointer operator->() const { return &(*list_it_); }
 
-		const_iterator& operator++() { return *this; }
+		const_iterator& operator++()
+		{
+			if (bucket_idx_ >= buckets_->size())
+			{
+				return *this;
+			}
+			if (++list_it_ != (*buckets_)[bucket_idx_].end())
+			{
+				return *this;
+			}
+			while (bucket_idx_ < buckets_->size() &&
+				   list_it_ == (*buckets_)[bucket_idx_].end())
+			{
+				++bucket_idx_;
+				if (bucket_idx_ == buckets_->size())
+				{
+					list_it_ = {};
+					return *this;
+				}
+				list_it_ = (*buckets_)[bucket_idx_].begin();
+			}
+			return *this;
+		}
 
-		const_iterator operator++(int) { return *this; }
+		const_iterator operator++(int)
+		{
+			iterator tmp(*this);
+			++(*this);
+			return tmp;
+		}
 
-		bool operator==(const const_iterator& o) const { return false; }
+		bool operator==(const const_iterator& o) const
+		{
+			if (buckets_ != o.buckets_)
+				return false;
+			if (bucket_idx_ != o.bucket_idx_)
+				return false;
+			if (bucket_idx_ == buckets_->size())
+				return true;
+			return list_it_ == o.list_it_;
+		}
 
 		bool operator!=(const const_iterator& o) const { return !(*this == o); }
 	};
@@ -243,11 +335,31 @@ class unordered_map
 	unordered_map& operator=(unordered_map&&) = default;
 	~unordered_map() = default;
 
-	iterator begin() { return end(); }
+	iterator begin()
+	{
+		for (size_t i = 0; i < buckets_.size(); ++i)
+		{
+			if (!buckets_[i].empty())
+			{
+				return iterator(&buckets_, i, buckets_[i].begin());
+			}
+		}
+		return end();
+	}
 
 	iterator end() { return iterator(&buckets_, buckets_.size(), {}); }
 
-	const_iterator begin() const { return end(); }
+	const_iterator begin() const
+	{
+		for (size_t i = 0; i < buckets_.size(); ++i)
+		{
+			if (!buckets_[i].empty())
+			{
+				return iterator(&buckets_, i, buckets_[i].begin());
+			}
+		}
+		return end();
+	}
 
 	const_iterator end() const
 	{
@@ -257,42 +369,111 @@ class unordered_map
 	const_iterator cbegin() const { return begin(); }
 	const_iterator cend() const { return end(); }
 
-	size_type size() const noexcept { return 0; }
+	size_type size() const noexcept { return size_; }
 
-	bool empty() const noexcept { return true; }
+	bool empty() const noexcept { return size_ == 0; }
 
-	iterator find(const K& key) { return end(); }
+	iterator find(const K& key)
+	{
+		if (buckets_.empty())
+			return end();
+		size_type i = bucket_for(key);
+		for (auto it = buckets_[i].begin(); it != buckets_[i].end(); ++it)
+		{
+			if (key == it->first)
+				return iterator(&buckets_, i, it);
+		}
+		return end();
+	}
 
-	const_iterator find(const K& key) const { return end(); }
+	const_iterator find(const K& key) const
+	{
+		if (buckets_.empty())
+			return end();
+		size_type i = bucket_for(key);
+		for (auto it = buckets_[i].begin(); it != buckets_[i].end(); ++it)
+		{
+			if (key == it->first)
+				return const_iterator(&buckets_, i, it);
+		}
+		return end();
+	}
 
 	bool contains(const K& key) const { return find(key) != end(); }
 
 	V& at(const K& key)
 	{
+		iterator it = find(key);
+		if (it != end())
+		{
+			return it->second;
+		}
 		throw std::out_of_range("bmstu::unordered_map::at: key not found");
 	}
 
 	const V& at(const K& key) const
 	{
+		const_iterator it = find(key);
+		if (it != end())
+		{
+			return it->second;
+		}
 		throw std::out_of_range("bmstu::unordered_map::at: key not found");
 	}
 
 	std::pair<iterator, bool> insert(const value_type& kv)
 	{
-		return {end(), false};
+		auto it = find(kv.first);
+		if (it != end())
+		{
+			return {it, false};
+		}
+		if (static_cast<double>(++size_) / buckets_.size() > MAX_LOAD_FACTOR)
+		{
+			rehash(buckets_.size() * 2);
+		}
+		size_type i = bucket_for(kv.first);
+		buckets_[i].push_front(kv);
+		return {iterator(&buckets_, i, buckets_[i].begin()), true};
 	}
 
 	V& operator[](const K& key) { return insert({key, V{}}).first->second; }
 
-	bool erase(const K& key) { return false; }
+	bool erase(const K& key)
+	{
+		iterator it = find(key);
+		if (it == end())
+		{
+			return false;
+		}
+		buckets_[it.bucket_idx_].erase(it.list_it_);
+		--size_;
+		return true;
+	}
 
-	void clear() {}
+	void clear()
+	{
+		for (bucket_type& bucket : buckets_)
+		{
+			bucket.clear();
+		}
+		size_ = 0;
+	}
 
-	double load_factor() const { return 0.0; }
+	double load_factor() const
+	{
+		if (size_ == 0)
+			return 0.0;
+		return static_cast<double>(size_) / buckets_.size();
+	}
 
-	size_type bucket_count() const { return 0; }
+	size_type bucket_count() const { return buckets_.size(); }
 
-	void reserve(size_type count) {}
+	void reserve(size_type count)
+	{
+		size_type n = static_cast<size_type>(count / MAX_LOAD_FACTOR) + 1;
+		rehash(n);
+	}
 };
 
 }  // namespace bmstu
