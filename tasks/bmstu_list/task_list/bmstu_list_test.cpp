@@ -544,10 +544,25 @@ TEST(BidirectLinkedListTests, InsertTest)
 	list.insert(list.begin(), 0);
 	ASSERT_EQ(0, list[0]); 
 	list.insert(list.end(), 5);
-	//std::cout<<"CHANGED LIST"<<list<<std::endl;
 	list.clear();
 	list.push_front(0);
 	list.push_back(2);
 	list.insert(list.begin()+1, 1);
 	ASSERT_EQ(1, list[1]); 
+}
+
+TEST(BidirectLinkedListTests, OperatorRev)
+{
+	bmstu::list<int> list{1,2,3,4,5,6,7,8};
+	bmstu::list<int> list2{8,7,6,5,4,3,2,1};
+	-list;
+	ASSERT_EQ(list,list2);
+}
+
+TEST(BidirectLinkedListTests, OperatorRev2)
+{
+	bmstu::list<int> list{1};
+	bmstu::list<int> list2{1};
+	list = -list;
+	ASSERT_EQ(list,list2);
 }
